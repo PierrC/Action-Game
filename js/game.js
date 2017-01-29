@@ -14,7 +14,6 @@ canvas.style.border
 
 var char = function(image, posX, posY, facing, speed, hasObject, attackDistance, attackWidth)
 {
-
     this.image = image;
     this.posX = posX;
     this.posY = posY;
@@ -27,7 +26,6 @@ var char = function(image, posX, posY, facing, speed, hasObject, attackDistance,
 }
 var object = function(image, posX, posY, attackDistanceIncrease, attackWidthIncrease, isPickedUp)
 {
-
     this.image = image;
     this.posX = posX;
     this.posY = posY;
@@ -52,6 +50,10 @@ wallImage.src = "img/wall.png";
 var sandImage = new Image();
 sandImage.src = "img/sand.png";
 
+var punchImage = new Image();
+punchImage.src = "img/punch.png"
+// 50 by 50 pixel
+
 var backgroundImage = new Image();
 backgroundImage.src = "img/whiteBackground.png"
 var background = new object(backgroundImage,0,0,0,0, false);
@@ -63,7 +65,7 @@ var objectTest2= new object(objectImage, 300, 200, 0, 0, false);
 
 var playerImage = new Image();
 playerImage.src = "img/charPlaceHolder.png";
-var player = new char(playerImage, 100, 100, 0, 12, 0, 0, 0);
+var player = new char(playerImage, 100, 100, 0, 12, false, 3, 3);
 
 
 var tileSet = [
@@ -106,6 +108,7 @@ addEventListener("keyup", function (e) {
 	keysDown[e.keyCode] = false;
 }, false);
 
+var boolAttack = false;
 var listOfObjects = [objectTest, objectTest2];
 var totalPosX = 0;
 var totalPosY = 0;
@@ -164,9 +167,23 @@ var playerMovment = function(modifier)
 
     ///////////////////  player actions  ////////////////////
 
-    if(keysDown[69] == true){
-        console.log("try pick up");
-        pickupObject();
+     if (player.hasObject == false ){
+         if (keysDown[69] == true){
+            console.log("try pick up");
+            pickupObject();
+         }
+    }
+    else{
+        if(keysDown[69] == true){
+            console.log("drop item");
+            dropObject();
+        }
+    }
+    if(keysDown[32] == true){
+        boolAttack = true;
+    }
+    else{
+        boolAttack = false;
     }
     
 }
@@ -212,7 +229,8 @@ var pickupObject = function(){
         }
     }
     if(rank!=-1){
-        listOfObjects[rank].isPickedup = true;
+        listOfObjects[rank].isPickedUp = true;
+        console.log("console.log(listOfObjects[rank].isPickedUp) = " + listOfObjects[rank].isPickedUp);
         player.hasObject = true;
         console.log("object picked up!");
     }
@@ -221,6 +239,21 @@ var pickupObject = function(){
 var distanceCalc = function(posX1, posX2, posY1, posY2){
     var distance = Math.abs(Math.sqrt(Math.pow(posX1-posX2,2)+Math.pow(posY1-posY2,2)));
     return distance;
+}
+
+var dropObject = function(){
+    player.hasObject = false;
+    for (var i = 0; i<listOfObjects.length; i++){
+        listOfObjects[i].isPickedUp = false;
+    }
+}
+var attackAnimation = function(){
+    ctx.save();
+    ctx.translate(player.posX, player.posY);
+    ctx.rotate(totalRotation*Math.PI/360);
+    ctx.drawImage(punchImage, -player.attackWidth*2.5 , -player.attackDistance*7.5, 5*player.attackWidth, 5*player.attackDistance);
+
+    ctx.restore();
 }
 
 var update = function(modifier)
@@ -239,14 +272,26 @@ var update = function(modifier)
 var tile = new tileSpace(wallImage, 100, 50);
 var render = function()
 {
-    
     /// drawing images
     ctx.drawImage(background.image, 0,0);
-    ctx.drawImage(objectTest.image, objectTest.posX-5, objectTest.posY-5);
-    ctx.drawImage(objectTest2.image, objectTest2.posX-5, objectTest2.posY-5);
     drawPlayer();
+    for (var i = 0; i<listOfObjects.length; i++){
+        console.log("draw Objects");
+        console.log(listOfObjects[i].isPickedUp );
+        if (listOfObjects[i].isPickedUp == true){
+            drawObject();
+             listOfObjects[i].posX = player.posX+15;
+            listOfObjects[i].posY = player.posY-3;
+            
+        }
+        else{
+            ctx.drawImage(listOfObjects[i].image, listOfObjects[i].posX, listOfObjects[i].posY);
+        }
+    }
     drawMap();
-    
+    if(boolAttack == true){
+        attackAnimation();
+    }
 }
 
 var tileList =  [];
@@ -273,7 +318,13 @@ var drawPlayer = function(){
     ctx.drawImage(player.image, -10, -10);
     ctx.restore();
 }
-
+var drawObject = function(){
+    ctx.save();
+    ctx.translate(player.posX, player.posY);
+    ctx.rotate(totalRotation*Math.PI/360);
+    ctx.drawImage(objectTest.image, 8, -10);
+    ctx.restore();
+}
 var main = function()
 {
    // tileList = [];

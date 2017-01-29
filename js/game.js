@@ -41,6 +41,66 @@ var tileSpace = function(image, posX, posY)
     this.posY = posY;
 }
 
+var enemy = function(image, posX, posY, speed)
+{
+    this.image = image;
+    this.posX = posX;
+    this.posY = posY;
+    this.speed = speed;
+}
+
+var hypotenus = 0;
+var hypotenus2 = 0;
+var cos = 0;
+var sin = 0;
+var enemyMovement = function()
+{
+    for(var i = 0; i < enemyList.length; i++){
+
+        xDistance = player.posX - enemyList[i].posX; // x
+        yDistance = player.posY - enemyList[i].posY; // y
+        hypotenus = Math.sqrt(Math.pow(xDistance, 2)+Math.pow(yDistance, 2));
+       
+       if(hypotenus < 15){
+           GameOver();
+       }
+       
+       cos = Math.abs((Math.cos(xDistance/hypotenus)));
+       sin = Math.abs((Math.sin(yDistance/hypotenus)));
+       
+       if(xDistance >= 0){
+           enemyList[i].posX += Math.cos(cos);
+       }
+       else{
+           enemyList[i].posX -= Math.cos(cos);
+       }
+       if(yDistance >= 0){
+           enemyList[i].posY += Math.sin(sin);
+       }
+       else{
+           enemyList[i].posY -= Math.sin(sin);
+       }
+
+       ///////// Punch /////////////////////
+      // hypotenus2 = distanceCalc(-player.attackWidth*2.5, enemyList[i].posX, -player.attackDistance*7.5, enemyList[i].posY);
+       if(boolAttack == true){
+       xDistance = player.posX - enemyList[i].posX; // x
+        yDistance = player.posY-10 - enemyList[i].posY; // y
+        hypotenus2 = Math.sqrt(Math.pow(xDistance, 2)+Math.pow(yDistance, 2));
+       
+        if(hypotenus2 < 40){
+           enemyList[i].posX = -100;
+           enemyList[i].posY = -100;
+           enemyList.splice(i, 1);
+       }
+       }
+
+
+    }
+
+}
+
+
 //////////////////////////////////////////////////////
 /////               Images                        ////
 //////////////////////////////////////////////////////
@@ -67,6 +127,11 @@ var playerImage = new Image();
 playerImage.src = "img/charPlaceHolder.png";
 var player = new char(playerImage, 100, 100, 0, 12, false, 3, 3);
 
+var enemyImage = new Image();
+enemyImage.src = "img/enemy.png"
+var enemy1 = new enemy(enemyImage, 500, 10, 1);
+
+var enemyList = [enemy1];
 
 var tileSet = [
     [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
@@ -169,17 +234,16 @@ var playerMovment = function(modifier)
 
      if (player.hasObject == false ){
          if (keysDown[69] == true){
-            console.log("try pick up");
             pickupObject();
          }
     }
     else{
         if(keysDown[69] == true){
-            console.log("drop item");
             dropObject();
         }
     }
     if(keysDown[32] == true){
+        spawnEnemy();
         boolAttack = true;
     }
     else{
@@ -189,7 +253,6 @@ var playerMovment = function(modifier)
 }
 
 var wallCalculationPlayer = function(){
-    console.log(tileList.length);
     for(var i = 0; i < tileList.length; i++){
         // left
         if((player.posX-tileList[i].posX)>=-22.5 && (player.posX-tileList[i].posX)<=0 && player.posY<=(tileList[i].posY+12.5) && player.posY>=(tileList[i].posY-12.5)){
@@ -221,7 +284,6 @@ var pickupObject = function(){
     for(var i = 0; i < listOfObjects.length; i++){
         var dis = distanceCalc(player.posX, listOfObjects[i].posX, player.posY, listOfObjects[i].posY);
         if ((player.hasObject==false)&&(dis<101)){
-            console.log("object in proximity");
             if(dis<dis2){
                 rank = i;
                 dis2 = dis;
@@ -230,9 +292,7 @@ var pickupObject = function(){
     }
     if(rank!=-1){
         listOfObjects[rank].isPickedUp = true;
-        console.log("console.log(listOfObjects[rank].isPickedUp) = " + listOfObjects[rank].isPickedUp);
         player.hasObject = true;
-        console.log("object picked up!");
     }
 }
 
@@ -262,7 +322,7 @@ var update = function(modifier)
     //var mod = modifier
     playerMovment(modifier);
     /// verify key presses
-
+    enemyMovement();
 
     /// enemy movments & actions
 
@@ -276,23 +336,29 @@ var render = function()
     ctx.drawImage(background.image, 0,0);
     drawPlayer();
     for (var i = 0; i<listOfObjects.length; i++){
-        console.log("draw Objects");
-        console.log(listOfObjects[i].isPickedUp );
         if (listOfObjects[i].isPickedUp == true){
             drawObject();
-             listOfObjects[i].posX = player.posX+15;
-            listOfObjects[i].posY = player.posY-3;
+             listOfObjects[i].posX = player.posX+8;
+            listOfObjects[i].posY = player.posY-10;
             
         }
         else{
             ctx.drawImage(listOfObjects[i].image, listOfObjects[i].posX, listOfObjects[i].posY);
         }
     }
+    drawEnemy();
     drawMap();
     if(boolAttack == true){
         attackAnimation();
     }
+    
 }
+
+var drawEnemy = function(){
+        for(var i = 0; i < enemyList.length; i++){
+            ctx.drawImage(enemyList[i].image, enemyList[i].posX-10, enemyList[i].posY-10);
+        }
+    }
 
 var tileList =  [];
 var drawMap = function (){
@@ -351,5 +417,22 @@ var then = Date.now();
 
 main();
 
+var GameOver = function(){
+     ctx.drawImage(background.image, 0,0);
+     ctx.font = "50px Arial";
+     ctx.fillText("Game Over",150,300);
+  exit();
+}
 
-
+var x =0;
+var y = 0;
+var s =0;
+var newEnemy;
+var spawnEnemy = function(){
+    console.log("here");
+    x = Math.random()*50 + 500;
+    y = Math.random()*50 + 500;
+    s = Math.random()*10;
+    newEnemy = new enemy(enemyImage, x, y, s);
+    enemyList.push(newEnemy);
+}
